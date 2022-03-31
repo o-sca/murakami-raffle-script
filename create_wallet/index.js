@@ -25,7 +25,7 @@ function saveWallets(walletArr) {
     for (i = 0; i < config.gen_amount; i++) {
         let wallet = await web3.eth.accounts.create()
         walletArr.push(wallet)
-        console.log(`[${i} / ${config.gen_amount}] || ${wallet.address}`)
+        console.log(`[${i + 1} / ${config.gen_amount}] || ${wallet.address}`)
     }
     saveWallets(walletArr)
 })();

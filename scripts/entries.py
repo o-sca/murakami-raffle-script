@@ -139,14 +139,16 @@ class Murakami(tools.Tools):
             if 'Thank you for submission.' in response.text:
                 self.update_status(f'Account created', 5)
                 success += 1
+                self.save_counter('success', self.email)
                 q.get()
                 q.task_done()
                 return
             else:
                 raise Exception('Error creating account')
         except Exception as e:
-            self.update_status(e)
+            self.update_status(e, 2)
             failed += 1
+            self.save_counter('failed', self.email)
             q.get()
             q.task_done()
             return

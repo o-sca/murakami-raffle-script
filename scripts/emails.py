@@ -10,13 +10,11 @@ class Emails(tools.Tools):
         self.limit = task['amount_of_emails_to_check']
         self.email = task['login']['email']
         self.password = task['login']['password']
-    
 
     def run(self):
         self.login()
         self.fetch_links()
         self.logout()
-
 
     def login(self):
         if self.check_task_status(): return
@@ -31,28 +29,32 @@ class Emails(tools.Tools):
             self.task_stopped = True
             return
 
-
     def logout(self):
         if self.check_task_status(): return
         self.update_status('Logging out')
         self.email_init.logout()
         return
 
-    
     def save_to_txt(self, link):
-        with open('./emails.txt', 'a') as file:
-            file.write(f'{link}\n')
-
+        with open('./links.txt', 'a') as file:
+            file.write(f'{link}')
 
     def fetch_links(self):
+        if self.task_stopped: return
         global success
-        for mail in self.email_init.fetch(criteria = A(from_ = 'tonari-no-news@kaikaikiki.co.jp'), reverse = True, mark_seen = True, limit = self.limit, bulk = True):
+        self.update_status('Fetching links', 4)
+        for mail in self.email_init.fetch(
+            criteria = A(from_ = 'tonari-no-news@kaikaikiki.co.jp', subject='Account confirmation required'), 
+            reverse = True, 
+            mark_seen = True, 
+            limit = self.limit, 
+            bulk = True
+        ):
             activation_id = mail.text.split('https://murakamiflowers.kaikaikiki.com/register/register?')[1].split('\n')[0]
             self.save_to_txt(f'https://murakamiflowers.kaikaikiki.com/register/register?{activation_id}')
             success += 1
             self.update_status(f'Successfully parsed link {success} / {self.limit}')
         return
-
 
     def delete_seen(self):
         # Not tested lol

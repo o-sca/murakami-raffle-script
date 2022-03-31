@@ -9,7 +9,6 @@ import requests
 
 class Tools:
     def __init__(self):
-        self.update_status  
         self.task_stopped = False
 
 
@@ -54,6 +53,11 @@ class Tools:
         with open(f'./scripts/names/{name_type}.txt') as name_file:
             names = name_file.read().split('\n')
         return random.choice(names)
+
+
+    def save_counter(self, file_name, account):
+        with open(f'./{file_name}.txt', 'a') as f:
+            f.write(account + '\n')
 
 
     def get_proxy(self):

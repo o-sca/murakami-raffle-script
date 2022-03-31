@@ -34,6 +34,7 @@ class Register(tools.Tools):
 
 
     def fetch_csrf_token(self):
+        global failed
         if self.check_task_status(): return
         headers = {
             "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9",
@@ -56,6 +57,13 @@ class Register(tools.Tools):
                 raise Exception(response.status_code)
             self.csrf_token = response.text.split('authenticity_token" value="')[1].split('"')[0]
             self.email = response.text.split('Email</span></div><div class="p-accountForm__itemContent"><input readonly="readonly" type="text" value="')[1].split('"')[0]
+            return
+        except IndexError:
+            self.update_status('Link expired or used already', 2)
+            self.task_stopped = True
+            failed += 1
+            q.get()
+            q.task_done()
             return
         except Exception as e:
             self.update_status(e, 2)
@@ -168,19 +176,19 @@ def main():
     global q, success, failed
     tools.print_logo()
     wallets = tools.open_json('wallets')
-    emails = tools.open_txt('emails')
-    if len(wallets) != len(emails):
+    links = tools.open_txt('links')
+    if len(wallets) != len(links):
         print('Incorrect ratio of emails to wallets')
-        print(f"Wallets: {len(wallets)} || Emails: {len(emails)}")
+        print(f"Wallets: {len(wallets)} || Links: {len(links)}")
         return
     config_file = tools.open_json('config')
     success, failed = 0, 0
     q = queue.Queue(maxsize = config_file["max_threads"])
 
-    for index in range(len(emails)):
+    for index in range(len(links)):
         config_object = {
             "key": config_file['captcha_keys']['capmonster'],
-            "link": emails[index],
+            "link": links[index],
             "wallet": wallets[index]["address"],
             "webhook": config_file['webhook']
         }
