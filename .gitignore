@@ -1,0 +1,11 @@
+config.json
+__pycache__
+.idea/
+emails.txt
+proxies.txt
+node_modules/
+emails copy.txt
+wallets.json
+wallets copy.json
+package-lock.json
+package.json
