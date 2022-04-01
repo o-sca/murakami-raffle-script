@@ -1,0 +1,23 @@
+{
+    "domain": "",
+    "gen_amount": 5608,
+    "max_threads": 30,
+    "email_type": "catchall",
+    "mail_domain": "gmail",
+    "email_folder_to_search": "inbox",
+    "amount_of_emails_to_check": 3000,
+    "login": {
+        "email": "",
+        "password": ""
+    },
+    "captcha_keys": {
+        "capmonster": "",
+        "2cap": "",
+        "anticap": ""
+    },
+    "web3": {
+        "http": "",
+        "ws": ""
+    },
+    "webhook": ""
+}
