@@ -72,50 +72,6 @@ class Register(tools.Tools):
             return self.fetch_csrf_token()
 
 
-    def send_captcha(self):
-        if self.check_task_status(): return
-        params = {
-            "clientKey": self.capM,
-            "task":
-                {
-                    "type":"NoCaptchaTaskProxyless",
-                    "websiteURL":"https://murakamiflowers.kaikaikiki.com/",
-                    "websiteKey":"6LeoiQ4eAAAAAH6gsk9b7Xh7puuGd0KyfrI-RHQY"
-                }
-        }
-        try: 
-            self.update_status('Fetching captcha')
-            response = self.session.post("https://api.capmonster.cloud/createTask", json = params)
-            if "taskId" in response.text:
-                self.taskId = response.json().get('taskId')
-                return True
-        except:
-            self.update_status(response.json())
-            return
-
-
-    def get_captcha_answer(self, count = 0):
-        if self.check_task_status(): return
-        params = {
-            "clientKey": self.capM,
-            "taskId": self.taskId
-        }
-        try:
-            self.update_status(f'Solving captcha [{count}]', 3)
-            response = requests.post('https://api.capmonster.cloud/getTaskResult', json = params)
-            if response.json().get('errorId') != 0:
-                raise Exception(response.json().get('errorCode'))
-            if response.json().get('status') == 'processing':
-                count += 1
-                time.sleep(5)
-                return self.get_captcha_answer(count)
-            data = response.json()
-            self.captcha_answer = data['solution']['gRecaptchaResponse']
-            return
-        except Exception as e: 
-            self.update_status(e, 2)
-
-
     def register_wallet(self):
         global success, failed
         if self.check_task_status(): return
@@ -172,16 +128,12 @@ class Register(tools.Tools):
             return
 
 
-def main():
+def main(config_file, wallets, links):
     global q, success, failed
-    tools.print_logo()
-    wallets = tools.open_json('wallets')
-    links = tools.open_txt('links')
     if len(wallets) != len(links):
         print('Incorrect ratio of emails to wallets')
         print(f"Wallets: {len(wallets)} || Links: {len(links)}")
         return
-    config_file = tools.open_json('config')
     success, failed = 0, 0
     q = queue.Queue(maxsize = config_file["max_threads"])
 

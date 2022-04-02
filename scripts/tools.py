@@ -7,7 +7,7 @@ import string
 import requests
 
 
-class Tools:
+class Tools():
     def __init__(self):
         self.task_stopped = False
 
@@ -81,6 +81,52 @@ class Tools:
                 return {
                     'https' : f"http://{split_proxy[2]}:{split_proxy[3]}@{split_proxy[0]}:{split_proxy[1]}"
                 }
+
+
+    def send_captcha(self):
+        if self.check_task_status(): return
+        params = {
+            "clientKey": self.capKey,
+            "task":
+                {
+                    "type":"NoCaptchaTaskProxyless",
+                    "websiteURL":"https://murakamiflowers.kaikaikiki.com/",
+                    "websiteKey":"6LeoiQ4eAAAAAH6gsk9b7Xh7puuGd0KyfrI-RHQY"
+                }
+        }
+        try: 
+            self.update_status('Fetching captcha')
+            response = self.session.post("https://api.capmonster.cloud/createTask", json = params)
+            if "taskId" not in response.text:
+                raise Exception(response.json())
+            self.taskId = response.json().get('taskId')
+            return
+        except Exception as e:
+            self.update_status(e)
+            self.task_stopped = True
+            return
+
+
+    def get_captcha_answer(self, count = 0):
+        if self.check_task_status(): return
+        params = {
+            "clientKey": self.capKey,
+            "taskId": self.taskId
+        }
+        try:
+            self.update_status(f'Solving captcha [{count}]', 3)
+            response = requests.post('https://api.capmonster.cloud/getTaskResult', json = params)
+            if response.json().get('errorId') != 0:
+                raise Exception(response.json().get('errorCode'))
+            if response.json().get('status') == 'processing':
+                count += 1
+                time.sleep(5)
+                return self.get_captcha_answer(count)
+            data = response.json()
+            self.captcha_answer = data['solution']['gRecaptchaResponse']
+            return
+        except Exception as e: 
+            self.update_status(e, 2)
 
 
 def print_logo():

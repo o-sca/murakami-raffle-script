@@ -56,6 +56,7 @@ class Emails(tools.Tools):
             self.update_status(f'Successfully parsed link {success} / {self.limit}')
         return
 
+
     def delete_seen(self):
         # Not tested lol
         self.email_init.delete([
@@ -63,10 +64,9 @@ class Emails(tools.Tools):
         ])
 
 
-def main():
+def main(config):
     global success
     success = 0
-    config = tools.open_json('config')
     Emails(config).run()
     print('Task Completed')
     print(f'Amount: {config["amount_of_emails_to_check"]} | Success: {success}')

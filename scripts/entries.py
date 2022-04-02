@@ -10,7 +10,7 @@ class Murakami(tools.Tools):
     def __init__(self, task, email=None):    
         super().__init__()
         self.email = f'{self.random_email()}@{task["domain"]}' if email == None else email
-        self.capM = task["captcha_keys"]['capmonster']
+        self.capKey = task["captcha_keys"]['capmonster']
         q.put(self)
         t = threading.Thread(target = self.run)
         t.start()
@@ -60,53 +60,9 @@ class Murakami(tools.Tools):
             return self.fetch_csrf_token()
 
 
-    def send_captcha(self):
-        if self.check_task_status(): return
-        params = {
-            "clientKey": self.capM,
-            "task":
-                {
-                    "type":"NoCaptchaTaskProxyless",
-                    "websiteURL":"https://murakamiflowers.kaikaikiki.com/",
-                    "websiteKey":"6LeoiQ4eAAAAAH6gsk9b7Xh7puuGd0KyfrI-RHQY"
-                }
-        }
-        try: 
-            self.update_status('Fetching captcha')
-            response = self.session.post("https://api.capmonster.cloud/createTask", json = params)
-            if "taskId" in response.text:
-                self.taskId = response.json().get('taskId')
-                return True
-        except:
-            self.update_status(response.json())
-            return
-
-
-    def get_captcha_answer(self, count = 0):
-        if self.check_task_status(): return
-        params = {
-            "clientKey": self.capM,
-            "taskId": self.taskId
-        }
-        try:
-            self.update_status(f'Solving captcha [{count}]', 3)
-            response = requests.post('https://api.capmonster.cloud/getTaskResult', json = params)
-            if response.json().get('errorId') != 0:
-                raise Exception(response.json().get('errorCode'))
-            if response.json().get('status') == 'processing':
-                count += 1
-                time.sleep(5)
-                return self.get_captcha_answer(count)
-            data = response.json()
-            self.captcha_answer = data['solution']['gRecaptchaResponse']
-            return
-        except Exception as e: 
-            self.update_status(e, 2)
-
-
     def register_account(self):
         global success, failed
-        if self.check_task_status(): return
+        if self.check_task_status(): q.get(); q.task_done(); return
         params = {
             "authenticity_token": self.csrf_token,
             "t": "new",
@@ -154,35 +110,33 @@ class Murakami(tools.Tools):
             return
 
 
-def main():
+def main(config_file):
     global q, success, failed
-    tools.print_logo()
-    config_file = tools.open_json('config')
-    success, failed = 0, 0
+    success, failed, total = 0, 0, 0
     q = queue.Queue(maxsize = config_file["max_threads"])
     if config_file['email_type'].lower() == 'raffle':
         with open('./emails.txt', 'r') as file:
             emails = file.read().split('\n')
-            amount = len(emails)
+            total = len(emails)
             domain = False
         for email in emails:
             Murakami(config_file, email)
         q.join()
     elif config_file['email_type'].lower() == 'catchall':   
-        amount = config_file['gen_amount']
+        total = config_file['gen_amount']
         domain = config_file['domain']
-        for _ in range(amount):
+        for _ in range(total):
             Murakami(config_file)
         q.join()
     else:
         print('Invalid value in "email_type".')
         return
     print("All tasks completed")
-    print(f"Amount: {amount} | Success: {success} | Failed: {failed}")
+    print(f"Amount: {total} | Success: {success} | Failed: {failed}")
     discord_object = {
         "email_type": config_file['email_type'],
         "domain": domain,
-        "amount": amount,
+        "amount": total,
         "success": success,
         "failed": failed,
         "webhook": config_file['webhook']
