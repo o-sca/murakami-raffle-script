@@ -9,7 +9,7 @@ import scripts.tools as tools
 class Register(tools.Tools):
     def __init__(self, task):    
         super().__init__()
-        self.capM = task['key']
+        self.capKey = task['key']
         self.link = task['link']
         self.wallet = task['wallet']
         self.fname = self.random_name('fname')
