@@ -136,7 +136,7 @@ class Tools():
 
     def save_wallet(self):
         with open('./wallets.txt', 'a+') as file:
-            file.write(f'{self.email}:{self.password}:{self.wallet}:{self.private_key}')
+            file.write(f'{self.email}:{self.password}:{self.wallet}:{self.private_key}\n')
         
 
 def print_logo():
