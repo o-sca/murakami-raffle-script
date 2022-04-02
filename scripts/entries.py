@@ -90,8 +90,7 @@ class Murakami(tools.Tools):
         }
         try:
             self.update_status('Submitting account', 4)
-            response = self.session.post('https://murakamiflowers.kaikaikiki.com/register/new_account', headers = headers, data = params, proxies = self.proxy)
-            #self.print_dict(params)
+            response = self.session.post('https://murakamiflowers.kaikaikiki.com/register/new_account', headers = headers, data = params, proxies = self.proxy, timeout = 15)
             if 'Thank you for submission.' in response.text:
                 self.update_status(f'Account created', 5)
                 tools.success += 1
