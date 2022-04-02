@@ -134,6 +134,11 @@ class Tools():
             self.update_status(e, 2)
 
 
+    def save_wallet(self):
+        with open('./wallets.txt', 'a+') as file:
+            file.write(f'{self.email}:{self.password}:{self.wallet}:{self.private_key}')
+        
+
 def print_logo():
         print(f"""{Fore.GREEN}
 

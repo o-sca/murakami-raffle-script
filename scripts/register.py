@@ -11,6 +11,7 @@ class Register(tools.Tools):
         self.capKey = task['key']
         self.link = task['link']
         self.wallet = task['wallet']
+        self.private_key = task['private_key']
         self.email = None
         self.fname = self.random_name('fname')
         self.password = self.random_string(16)
@@ -107,13 +108,13 @@ class Register(tools.Tools):
         }
         try:
             self.update_status('Submitting wallet', 4)
-            #self.print_dict(params)
-            response = self.session.post('https://murakamiflowers.kaikaikiki.com/register/register', data = params, headers = headers, proxies = self.proxy)
+            response = self.session.post('https://murakamiflowers.kaikaikiki.com/register/register', data = params, headers = headers, proxies = self.proxy, timeout = 20)
             response.raise_for_status()
             if 'Thank you for your registering.' in response.text:
                 self.update_status('Wallet submitted', 5)
                 tools.success += 1
                 tools.update_title()
+                self.save_wallet()
             q.get()
             q.task_done()
             return
@@ -140,6 +141,7 @@ def main(config_file, wallets, links):
             "key": config_file['captcha_keys']['capmonster'],
             "link": links[index],
             "wallet": wallets[index]["address"],
+            "private_key": wallets[index]["privateKey"],
             "webhook": config_file['webhook']
         }
         Register(config_object)
