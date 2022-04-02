@@ -1,16 +1,21 @@
 from datetime import datetime
-from colorama import Fore
+from colorama import Fore, init
 import time
 import json
 import random
 import string
 import requests
+import ctypes
+
+global total, success, failed
+total, success, failed = 0, 0 ,0
+init(convert=True)
 
 
 class Tools():
     def __init__(self):
         self.task_stopped = False
-
+        
 
     def check_task_status(self):
         if self.task_stopped: return True
@@ -18,7 +23,7 @@ class Tools():
 
 
     def update_status(self, status, status_colour = 1):
-        task_status = f"[{datetime.now()}] {status}"
+        task_status = f"[{datetime.now().strftime('%H:%M:%S.%f')[:-4]}] [{self.email if self.email != None else ''}] {status}"
         match status_colour:
             case 1: # Normal
                 return print(f"{Fore.WHITE}{task_status}")
@@ -46,7 +51,7 @@ class Tools():
 
 
     def random_email(self):
-        return f"{self.random_name('fname')}_{self.random_name('lname')}{self.random_string(6)}"
+        return f"{self.random_name('fname')}_{self.random_name('lname')}{random.randint(0,9999)}"
 
 
     def random_name(self, name_type):
@@ -157,6 +162,10 @@ def open_txt(file_name):
     with open(f'./{file_name}.txt', 'r') as file:
         data = file.read().split('\n')
     return data
+
+
+def update_title():
+    ctypes.windll.kernel32.SetConsoleTitleW(f'Murakami Raffle | Total: {total} / Success: {success} / Failed: {failed}')
 
 
 def send_webhook(discord_object):

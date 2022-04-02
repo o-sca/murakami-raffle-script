@@ -1,4 +1,3 @@
-import time
 import requests
 import queue
 import threading
@@ -48,20 +47,21 @@ class Murakami(tools.Tools):
         }
         try:
             self.update_status('Fetching auth token')
-            response = self.session.get('https://murakamiflowers.kaikaikiki.com/register/new', headers = headers, proxies = self.proxy)
-            if response.status_code != 200:
-                raise Exception(response.status_code)
+            response = self.session.get('https://murakamiflowers.kaikaikiki.com/register/new', 
+                headers = headers, 
+                proxies = self.proxy,
+                timeout = 10)
+            response.raise_for_status()
             self.csrf_token = response.text.split('csrf-token" content="')[1].split('"')[0]
             return
-        except Exception as e:
+        except requests.exceptions.RequestException as e:
             self.update_status(e, 2)
             self.session.cookies.clear()
             self.proxy = self.get_proxy()
             return self.fetch_csrf_token()
-
+        
 
     def register_account(self):
-        global success, failed
         if self.check_task_status(): q.get(); q.task_done(); return
         params = {
             "authenticity_token": self.csrf_token,
@@ -94,7 +94,8 @@ class Murakami(tools.Tools):
             #self.print_dict(params)
             if 'Thank you for submission.' in response.text:
                 self.update_status(f'Account created', 5)
-                success += 1
+                tools.success += 1
+                tools.update_title()
                 self.save_counter('success', self.email)
                 q.get()
                 q.task_done()
@@ -103,7 +104,8 @@ class Murakami(tools.Tools):
                 raise Exception('Error creating account')
         except Exception as e:
             self.update_status(e, 2)
-            failed += 1
+            tools.failed += 1
+            tools.update_title()
             self.save_counter('failed', self.email)
             q.get()
             q.task_done()
@@ -111,34 +113,37 @@ class Murakami(tools.Tools):
 
 
 def main(config_file):
-    global q, success, failed
-    success, failed, total = 0, 0, 0
+    global q
+    tools.success, tools.failed, tools.total = 0, 0, 0
+    tools.update_title()
     q = queue.Queue(maxsize = config_file["max_threads"])
     if config_file['email_type'].lower() == 'raffle':
         with open('./emails.txt', 'r') as file:
             emails = file.read().split('\n')
-            total = len(emails)
+            tools.total = len(emails)
             domain = False
+            tools.update_title()
         for email in emails:
             Murakami(config_file, email)
         q.join()
     elif config_file['email_type'].lower() == 'catchall':   
-        total = config_file['gen_amount']
+        tools.total = config_file['gen_amount']
         domain = config_file['domain']
-        for _ in range(total):
+        tools.update_title()
+        for _ in range(tools.total):
             Murakami(config_file)
         q.join()
     else:
         print('Invalid value in "email_type".')
         return
     print("All tasks completed")
-    print(f"Amount: {total} | Success: {success} | Failed: {failed}")
+    print(f"Amount: {tools.total} | Success: {tools.success} | Failed: {tools.failed}")
     discord_object = {
         "email_type": config_file['email_type'],
         "domain": domain,
-        "amount": total,
-        "success": success,
-        "failed": failed,
+        "amount": tools.total,
+        "success": tools.success,
+        "failed": tools.failed,
         "webhook": config_file['webhook']
     }
     tools.send_webhook(discord_object)

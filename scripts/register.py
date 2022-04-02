@@ -1,4 +1,3 @@
-import time
 import requests
 import queue
 import threading
@@ -12,6 +11,7 @@ class Register(tools.Tools):
         self.capKey = task['key']
         self.link = task['link']
         self.wallet = task['wallet']
+        self.email = None
         self.fname = self.random_name('fname')
         self.password = self.random_string(16)
         q.put(self)
@@ -34,7 +34,6 @@ class Register(tools.Tools):
 
 
     def fetch_csrf_token(self):
-        global failed
         if self.check_task_status(): return
         headers = {
             "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9",
@@ -53,19 +52,19 @@ class Register(tools.Tools):
         try:
             self.update_status('Fetching auth token')
             response = self.session.get(self.link, headers = headers, proxies = self.proxy)
-            if response.status_code != 200:
-                raise Exception(response.status_code)
+            response.raise_for_status()
             self.csrf_token = response.text.split('authenticity_token" value="')[1].split('"')[0]
             self.email = response.text.split('Email</span></div><div class="p-accountForm__itemContent"><input readonly="readonly" type="text" value="')[1].split('"')[0]
             return
         except IndexError:
             self.update_status('Link expired or used already', 2)
             self.task_stopped = True
-            failed += 1
+            tools.failed += 1
+            tools.update_title()
             q.get()
             q.task_done()
             return
-        except Exception as e:
+        except requests.exceptions.RequestException as e:
             self.update_status(e, 2)
             self.session.cookies.clear()
             self.proxy = self.get_proxy()
@@ -73,7 +72,6 @@ class Register(tools.Tools):
 
 
     def register_wallet(self):
-        global success, failed
         if self.check_task_status(): return
         params = {
             "authenticity_token": self.csrf_token,
@@ -111,30 +109,30 @@ class Register(tools.Tools):
             self.update_status('Submitting wallet', 4)
             #self.print_dict(params)
             response = self.session.post('https://murakamiflowers.kaikaikiki.com/register/register', data = params, headers = headers, proxies = self.proxy)
-            if response.status_code != 200:
-                print(response.status_code)
-                raise Exception(response.text)
+            response.raise_for_status()
             if 'Thank you for your registering.' in response.text:
                 self.update_status('Wallet submitted', 5)
-                success += 1
+                tools.success += 1
+                tools.update_title()
             q.get()
             q.task_done()
             return
-        except Exception as e:
+        except requests.exceptions.RequestException as e:
             self.update_status(e, 2)
-            failed += 1
+            tools.failed += 1
+            tools.update_title()
             q.get()
             q.task_done()
             return
 
 
 def main(config_file, wallets, links):
-    global q, success, failed
+    global q
     if len(wallets) != len(links):
         print('Incorrect ratio of emails to wallets')
         print(f"Wallets: {len(wallets)} || Links: {len(links)}")
         return
-    success, failed = 0, 0
+    tools.success, tools.failed, tools.total = 0, 0, len(wallets)
     q = queue.Queue(maxsize = config_file["max_threads"])
 
     for index in range(len(links)):
@@ -147,13 +145,13 @@ def main(config_file, wallets, links):
         Register(config_object)
     q.join()
     print("All tasks completed")
-    print(f"Amount: {len(wallets)} | Success: {success} | Failed: {failed}")  
+    print(f"Amount: {tools.total} | Success: {tools.success} | Failed: {tools.failed}")  
     discord_object = {
         "email_type": "Wallet Submission",
         "domain": "_ _",
         "amount": len(wallets),
-        "success": success,
-        "failed": failed,
+        "success": tools.success,
+        "failed": tools.failed,
         "webhook": config_file['webhook']
     }
     tools.send_webhook(discord_object)
