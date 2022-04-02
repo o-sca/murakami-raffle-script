@@ -52,7 +52,7 @@ class Register(tools.Tools):
         }
         try:
             self.update_status('Fetching auth token')
-            response = self.session.get(self.link, headers = headers, proxies = self.proxy)
+            response = self.session.get(self.link, headers = headers, proxies = self.proxy, timeout = 10)
             response.raise_for_status()
             self.csrf_token = response.text.split('authenticity_token" value="')[1].split('"')[0]
             self.email = response.text.split('Email</span></div><div class="p-accountForm__itemContent"><input readonly="readonly" type="text" value="')[1].split('"')[0]
