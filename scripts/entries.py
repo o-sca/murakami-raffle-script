@@ -11,8 +11,7 @@ class Murakami(tools.Tools):
         self.email = f'{self.random_email()}@{task["domain"]}' if email == None else email
         self.capKey = task["captcha_keys"]['capmonster']
         q.put(self)
-        t = threading.Thread(target = self.run)
-        t.start()
+        threading.Thread(target = self.run, daemon = True).start()
 
 
     def run(self):
@@ -54,7 +53,7 @@ class Murakami(tools.Tools):
             response.raise_for_status()
             self.csrf_token = response.text.split('csrf-token" content="')[1].split('"')[0]
             return
-        except requests.exceptions.RequestException as e:
+        except Exception as e:
             self.update_status(e, 2)
             self.session.cookies.clear()
             self.proxy = self.get_proxy()
@@ -62,7 +61,7 @@ class Murakami(tools.Tools):
         
 
     def register_account(self):
-        if self.check_task_status(): q.get(); q.task_done(); return
+        if self.check_task_status(): return
         params = {
             "authenticity_token": self.csrf_token,
             "t": "new",
@@ -99,8 +98,6 @@ class Murakami(tools.Tools):
                 q.get()
                 q.task_done()
                 return
-            else:
-                raise Exception('Error creating account')
         except Exception as e:
             self.update_status(e, 2)
             tools.failed += 1
@@ -117,11 +114,10 @@ def main(config_file):
     tools.update_title()
     q = queue.Queue(maxsize = config_file["max_threads"])
     if config_file['email_type'].lower() == 'raffle':
-        with open('./emails.txt', 'r') as file:
-            emails = file.read().split('\n')
-            tools.total = len(emails)
-            domain = False
-            tools.update_title()
+        emails = tools.open_txt('emails')
+        tools.total = len(emails)
+        domain = False
+        tools.update_title()
         for email in emails:
             Murakami(config_file, email)
         q.join()

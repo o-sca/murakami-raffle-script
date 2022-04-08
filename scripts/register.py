@@ -16,8 +16,7 @@ class Register(tools.Tools):
         self.fname = self.random_name('fname')
         self.password = self.random_string(16)
         q.put(self)
-        t = threading.Thread(target = self.run)
-        t.start()
+        threading.Thread(target = self.run).start()
 
 
     def run(self):
@@ -73,7 +72,10 @@ class Register(tools.Tools):
 
 
     def register_wallet(self):
-        if self.check_task_status(): return
+        if self.check_task_status(): 
+            q.get()
+            q.task_done()
+            return
         params = {
             "authenticity_token": self.csrf_token,
             "user[email]": self.email,
@@ -118,7 +120,7 @@ class Register(tools.Tools):
             q.get()
             q.task_done()
             return
-        except requests.exceptions.RequestException as e:
+        except Exception as e:
             self.update_status(e, 2)
             tools.failed += 1
             tools.update_title()
@@ -135,7 +137,6 @@ def main(config_file, wallets, links):
         return
     tools.success, tools.failed, tools.total = 0, 0, len(wallets)
     q = queue.Queue(maxsize = config_file["max_threads"])
-
     for index in range(len(links)):
         config_object = {
             "key": config_file['captcha_keys']['capmonster'],
