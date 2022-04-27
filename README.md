@@ -17,7 +17,9 @@ Web3
 ## Running The Script
 **Generating Wallets**
 `node create_wallet/index.js`
+
 _The amount value of wallets generated are parsed from the config.json "gen_amount" value._
+
 
 ![image](https://user-images.githubusercontent.com/97479266/165455832-8ec66158-f34b-4bbb-b9e7-88a58e1403fe.png)
 
